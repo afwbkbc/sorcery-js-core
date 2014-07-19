@@ -109,13 +109,15 @@ Sorcery.define([
       var self=this;
       var walk = function(dir) {
         var results = [];
+        if (self.file_exists(dir)) {
         var list = self.fs.readdirSync(dir);
-        list.forEach(function(file) {
-            file = dir + '/' + file;
-            var stat = self.fs.statSync(file);
-            if (stat && stat.isDirectory()) results = results.concat(walk(file));
-            else results.push(file);
-        });
+          list.forEach(function(file) {
+              file = dir + '/' + file;
+              var stat = self.fs.statSync(file);
+              if (stat && stat.isDirectory()) results = results.concat(walk(file));
+              else results.push(file);
+          });
+        }
         return results;
       };
       return walk(path);

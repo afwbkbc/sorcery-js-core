@@ -7,6 +7,7 @@ Sorcery.define([
   return Command.extend({
     
     run : function(parameters) {
+      //console.log('THIS',this);
       Cli.print('Available commands:\n');
       var paths=Sorcery.get_require_paths();
       for (var i in paths) {

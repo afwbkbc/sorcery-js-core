@@ -155,7 +155,15 @@ Sorcery.define([
             pathcache[pck][ii]=compiled[ii].replace(/\.\//,'./compiled/');
       }
       
-      filedata+='Sorcery.set_path_cache('+JSON.stringify(pathcache)+');Sorcery.set_resource_cache('+JSON.stringify(resourcecache)+');';
+      var packages=[];
+      var dirs1=Fs.list_directory('./packages');
+      for (var i in dirs1) {
+        var dirs2=Fs.list_directory('./packages/'+dirs1[i]);
+        for (var ii in dirs2)
+          packages.push(dirs1[i]+'/'+dirs2[ii]);
+      }
+      
+      filedata+='Sorcery.set_packages('+JSON.stringify(packages)+');Sorcery.set_path_cache('+JSON.stringify(pathcache)+');Sorcery.set_resource_cache('+JSON.stringify(resourcecache)+');';
       
       // other
       Fs.write_file('cache.js',filedata);

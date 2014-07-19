@@ -8,6 +8,8 @@ Sorcery.define([],function(){
       for (var i in this) {
         if (typeof(ret[i])==='undefined')
           ret[i]=this[i];
+        if (typeof(ret[i])==='function')
+          ret[i].owner=ret;
       }
       ret.this_class=ret;
       ret.parent_class=this;
