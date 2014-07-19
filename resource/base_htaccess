@@ -1,0 +1,8 @@
+ForceType application/octet-stream
+<Files "sorcery.html">
+	ForceType text/html
+</Files>
+
+RewriteEngine on
+DirectorySlash off
+
