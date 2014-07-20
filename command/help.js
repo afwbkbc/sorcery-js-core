@@ -23,7 +23,10 @@ Sorcery.define([
               Cli.print(' - '+this.description()+'\n');
             else {
               Sorcery.require(path+'/'+file,function(Command){
-                Cli.print(' - '+Command.description()+'\n');
+                if (Command!==null) {
+                  Cli.print(' - '+Command.description());
+                }
+                Cli.print('\n');
               });
             }
           }

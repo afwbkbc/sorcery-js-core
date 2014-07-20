@@ -1,6 +1,6 @@
 Sorcery.define([
   'class/command',
-  'service/aux',
+  'service/aux'
 ],function(Command,Aux){
   
   return Command.extend({

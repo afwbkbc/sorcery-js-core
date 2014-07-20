@@ -30,7 +30,7 @@ Sorcery.define([
       
     },
   
-    copy_file : function(src,dest,callback) {
+    copy_file : function(src,dest) {
       
       var pos=dest.lastIndexOf('/');
       if (pos>=0) {
