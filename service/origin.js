@@ -9,7 +9,6 @@ Sorcery.define([
       var sid=Sorcery.begin();
       
       Http.get(Sorcery.origin_url+'/download/sorcery.js',function(contents){
-        //console.log('CONTENTS',contents);
         return Sorcery.end(sid,contents);
       });
       

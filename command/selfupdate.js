@@ -10,7 +10,7 @@ Sorcery.define([
     run : Sorcery.method(function() {
       var sid=Sorcery.begin();
       
-      Cli.print('downloading sorcery.js...');
+      Cli.print('downloading latest sorcery.js...');
       Origin.download_script(function(contents){
         Cli.print('done\n');
         Fs.write_file('./sorcery.js',contents);

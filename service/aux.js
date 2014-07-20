@@ -126,7 +126,8 @@ Sorcery.define([
                   if ((ei>=0)&&(ei===flel)) {
                     f=f.substring(0,flel);
                     if (typeof(pathcache[f])==='undefined')
-                      pathcache[f]=path;
+                      pathcache[f]=[];
+                    pathcache[f].push(path);
                   }
                 }
               }
@@ -150,9 +151,15 @@ Sorcery.define([
         compiler=Sorcery.compilers[i];
         compiled=getcache(compiler.source);
         var pck=compiler.type+'/'+compiler.engine;
-        for (var ii in compiled)
+        for (var ii in compiled) {
           if (typeof(pathcache[pck][ii])==='undefined')
-            pathcache[pck][ii]=compiled[ii].replace(/\.\//,'./compiled/');
+            pathcache[pck][ii]=[];
+          for (var iii in compiled[ii]) {
+            var c=compiled[ii][iii].replace(/\.\//,'./compiled/');
+            if (pathcache[pck][ii].indexOf(c)<0)
+              pathcache[pck][ii].push(c);
+          }
+        }
       }
       
       var packages=[];
