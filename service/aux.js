@@ -110,9 +110,10 @@ Sorcery.define([
             if (basedir==='resource') {
               if (f.indexOf(resourcestr)===0) {
                 f=f.substring(resourcestr.length);
-                if (typeof(resourcecache[f])==='undefined') {
-                  resourcecache[f]=path+resourcestr;
-                }
+                if (typeof(resourcecache[f])==='undefined')
+                  resourcecache[f]=[];
+                if (resourcecache[f].indexOf(path+resourcestr)<0)
+                  resourcecache[f].push(path+resourcestr);
               }
             }
             else {
@@ -127,7 +128,8 @@ Sorcery.define([
                     f=f.substring(0,flel);
                     if (typeof(pathcache[f])==='undefined')
                       pathcache[f]=[];
-                    pathcache[f].push(path);
+                    if (pathcache[f].indexOf(path)<0)
+                      pathcache[f].push(path);
                   }
                 }
               }
@@ -267,8 +269,278 @@ Sorcery.define([
       );
       
     },
+
+    debug : function(text) {
+      Cli.print(text+'\n');
+    },
   
     maintain : function() {
+      
+      var bases=['.','./compiled'];
+      
+      var paths=[];
+      
+      for (var i in bases) {
+        var base=bases[i];
+        paths.push(base+'/app/');
+        paths.push(base+'/packages/');
+
+        /*for (var ii in Sorcery.packages) {
+          paths.push(base+'/packages/'+Sorcery.packages[ii]);
+        }*/
+      }
+      
+      var todos=[];
+      
+      var todotimeout=false;
+      var todofunc=function(){
+        todotimeout=false;
+        
+        for (var i in todos) {
+          var todo=todos[i];
+          
+          if (todo==='writecache') {
+            var filedata='Sorcery.set_packages('+JSON.stringify(Sorcery.packages)+');Sorcery.set_path_cache('+JSON.stringify(Sorcery.path_cache)+');Sorcery.set_resource_cache('+JSON.stringify(Sorcery.resource_cache)+');';
+            Fs.write_file('./cache.js',filedata);
+          }
+          
+        }
+        
+        todos=[];
+      };
+      
+      var addtodo=function(todo) {
+        if (todos.indexOf(todo)<0)
+          todos.push(todo);
+        if (todotimeout!==false)
+          clearTimeout(todotimeout);
+        todotimeout=setTimeout(todofunc,100);
+      };
+      
+      var actions={
+        '.js':[{
+            action:'path',
+            key:'js'
+        },'htaccess']
+      };
+      //console.log('C',Sorcery.path_cache);
+      for (var i in Sorcery.engines) {
+        var engine=Sorcery.engines[i];
+        for (var ii in engine) {
+          var extension=engine[ii];
+          if (typeof(actions[extension])==='undefined')
+            actions[extension]=[];
+          actions[extension].push({
+            action:'path',
+            key:i+'/'+ii
+          });
+        }
+      }
+      
+      for (var i in Sorcery.compilers) {
+        var compiler=Sorcery.compilers[i];
+        var extension=compiler.source;
+        if (typeof(actions[extension])==='undefined')
+          actions[extension]=[];
+        actions[extension].push({
+          action:'compile',
+          compiler:i,
+          options:compiler
+        });
+      }
+      
+      var cache={
+        routes:[]
+      };
+      
+      var me=this;
+      
+      //console.log('ASD',Sorcery.resource_cache);
+      var actionfuncs={
+        
+        path : function(event,path,options) {
+          
+          if (['add','unlink'].indexOf(event)<0)
+            return;
+          
+          var origpath=path;
+          
+          if (!options.resource) {
+            var lio=path.lastIndexOf(options.extension);
+            path=path.substring(0,lio);
+          }
+          
+          var cache={};
+          if (options.resource) {
+            var resourcestr='/resource/';
+            var pos=path.indexOf(resourcestr);
+            if (pos>=0) {
+              pos+=resourcestr.length;
+              cache[path.substring(pos)]='./'+path.substring(0,pos);
+            }
+          }
+          else {
+            
+            var pth='./';
+            
+            var compiledstr='compiled/';
+            var compiledstrl=compiledstr.length;
+            if (path.substring(0,compiledstrl)===compiledstr) {
+              path=path.substring(compiledstrl);
+              pth+=compiledstr;
+              //console.log('X',path,pth);
+            }
+            
+            cache[path]=pth;
+            var appstr='app/';
+            var appstrl=appstr.length;
+            if (path.substring(0,appstrl)===appstr) {
+              path=path.substring(appstrl);
+              pth=pth+appstr;
+              cache[path]=pth;
+            }
+            else {
+              var packagesstr='packages/';
+              var packagesstrl=packagesstr.length;
+              if (path.substring(0,packagesstrl)===packagesstr) {
+                path=path.substring(packagesstrl);
+                pth=pth+packagesstr;
+                cache[path]=pth;
+                var pos=path.indexOf('/');
+                if (pos>=0) {
+                  pth=pth+path.substring(0,pos+1);
+                  path=path.substring(pos+1);
+                  pos=path.indexOf('/');
+                  if (pos>=0) {
+                    pth=pth+path.substring(0,pos+1);
+                    path=path.substring(pos+1);
+                    cache[path]=pth;
+                  }
+                }
+              }
+            }
+          }
+
+          var source;
+          if (options.resource)
+            source=Sorcery.resource_cache;
+          else
+            source=Sorcery.path_cache[options.key];
+          
+          var compiledstr='compiled/';
+          var compiledstrl=compiledstr.length;
+          
+          var action=null;
+          
+          for (var i in cache) {
+            var v=cache[i];
+            var chk=source[i];
+            if (typeof(chk)==='undefined') {
+              source[i]=[];
+              chk=source[i];
+            }
+            var iof=chk.indexOf(v);
+            if (event==='add') {
+              if (iof<0) {
+                action='+';
+                chk.push(v);
+              }
+            }
+            else if (event==='unlink') {
+              if (iof>=0) {
+                action='-';
+                source[i]=chk.splice(iof,1);
+              }
+            }
+          }
+          
+          if (action!==null) {
+            me.debug('['+action+'] '+origpath);
+            addtodo('writecache');
+          }
+          
+        },
+        
+        htaccess : function(event,path) {
+          //console.log('HTACCESS',event,path);
+        },
+        
+        compile : function(event,path,options) {
+          //console.log('COMPILE',event,path,options);
+        }
+        
+      };
+      
+      var onfunc=function(event,path) {
+
+        var pos=path.indexOf('/resource/');
+        if (pos>=0) {
+          var prepath=path.substring(0,pos);
+          var isresource=prepath==='app';
+          if (!isresource) {
+            var packagesstr='packages/';
+            var packagesstrl=packagesstr.length;
+            if (prepath.substring(0,packagesstrl)===packagesstr) {
+              prepath=prepath.substring(packagesstrl);
+              pos=prepath.indexOf('/');
+              if (pos>=0) {
+                prepath=prepath.substring(pos+1);
+                if (prepath.indexOf('/')<0)
+                  isresource=true;
+              }
+            }
+          }
+          if (isresource) {
+            actionfuncs.path(event,path,{
+              resource:true
+            });
+            return;
+          }
+        }
+
+        for (var extension in actions) {
+          if (path.substring(path.length-extension.length)===extension) {
+            
+            var a=actions[extension];
+            
+            for (var i in a) {
+              var action=a[i];
+              var actionname='';
+              var options={};
+              if (typeof(action)==='string')
+                actionname=action;
+              else {
+                for (var ii in action) {
+                  var vv=action[ii];
+                  if (ii==='action')
+                    actionname=vv;
+                  else
+                    options[ii]=vv;
+                }
+              }
+              options['extension']=extension;
+              //console.log('ANAME',actionname,action);
+              if (actionfuncs[actionname](event,path,options)===false)
+                break;
+              
+              //console.log('ACTION',extension,event,path,aname,action);
+              
+            }
+            
+            //console.log('EVENT',extension,event,path,a);
+            
+
+          }
+        }
+
+      };
+      
+      for (var i in paths)
+        Fs.watch_directory(paths[i],{ignored: /[\/\\]\./}).on('all',onfunc);
+
+    },
+  
+    maintain_old : function() {
       
       var update_timeout=false;
       
