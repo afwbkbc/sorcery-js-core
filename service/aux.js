@@ -516,7 +516,52 @@ Sorcery.define([
         },
         
         compile : function(event,path,options) {
-          //console.log('COMPILE',event,path,options);
+          
+          if (['add','change','unlink'].indexOf(event)<0)
+            return;
+          
+          var dpath='compiled/'+path.substring(0,path.length-options.extension.length)+options.options.dest;
+          
+          if (event==='unlink') {
+
+            Fs.remove_file(dpath);
+            var spos=dpath.lastIndexOf('/');
+            if (spos>=0) {
+              var fdir=dpath.substring(0,spos);
+              var files=Fs.list_directory(fdir);
+              if (!files.length)
+                Fs.remove_directory(fdir);
+            }
+
+          }
+          else {
+            
+            var m1=Fs.file_info(path,'mtime');
+            var m2;
+            if (Fs.file_exists(dpath))
+              m2=Fs.file_info(dpath,'mtime');
+            else m2='';
+
+            if (m1>m2) {
+            
+            
+              Sorcery.require([
+                'service/compiler/'+options.compiler
+              ],function(Compiler){
+                var src=Fs.read_file('./'+path);
+                Compiler.compile(src,function(dst){
+                  var exists=Fs.file_exists(dpath);
+                  Fs.write_file(dpath,dst);
+                  if (exists)
+                    me.debug('[~] '+dpath);
+                });
+              });
+              
+            }
+            
+          }
+          
+          
         }
         
       };
