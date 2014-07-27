@@ -303,6 +303,9 @@ Sorcery.define([
             var filedata='Sorcery.set_packages('+JSON.stringify(Sorcery.packages)+');Sorcery.set_path_cache('+JSON.stringify(Sorcery.path_cache)+');Sorcery.set_resource_cache('+JSON.stringify(Sorcery.resource_cache)+');';
             Fs.write_file('./cache.js',filedata);
           }
+          else if (todo==='writehtaccess') {
+            Fs.write_file('./.htaccess',htaccess);
+          }
           
         }
         
@@ -315,6 +318,20 @@ Sorcery.define([
         if (todotimeout!==false)
           clearTimeout(todotimeout);
         todotimeout=setTimeout(todofunc,100);
+      };
+
+      var htaccess='';
+      var htaccess_cache={};
+      var updhtaccess=function() {
+        htaccess=Fs.read_resource('base_htaccess');
+        for (var i in htaccess_cache) {
+          var v=htaccess_cache[i];
+          for (var ii in v) {
+            var vv=v[ii];
+            htaccess+=vv;
+          }
+        }
+        addtodo('writehtaccess');
       };
       
       var actions={
@@ -512,7 +529,123 @@ Sorcery.define([
         },
         
         htaccess : function(event,path) {
-          //console.log('HTACCESS',event,path);
+          
+          if (['add','unlink','change'].indexOf(event)<0)
+            return;
+          
+          if (event==='unlink') {
+            var htcache=htaccess_cache[path];
+            if (typeof(htcache)!=='undefined') {
+              for (var i in htcache)
+                me.debug('[-URL] /'+i);
+              delete htaccess_cache[path];
+              updhtaccess();
+            }
+          }
+          else {
+          
+            try {
+              Sorcery.unrequire('./'+path);
+              Sorcery.require('./'+path,function(Module){
+                if (Module.parent_class.class_name==='controller') {
+
+                  var htmlpath='sorcery.html';
+
+                  var routemasks={};
+
+                  var pseudo_router={
+
+                    route : function(data) {
+
+                      var pattern=data.pattern;
+                      if (typeof(pattern)!=='string')
+                        return;
+                      var pos;
+                      while ((pos=pattern.indexOf(':'))>=0) {
+                        var subpattern=pattern.substring(pos);
+                        var pos2=subpattern.indexOf('/');
+                        if (pos2>=0)
+                          subpattern=subpattern.substring(0,pos2);
+                        pattern=pattern.replace(subpattern,'([^/]+)');
+                      }
+                      var type=data.type;
+                      if (typeof(type)==='undefined')
+                        type='controller';
+
+                      var target;
+                      if (type==='controller')
+                        target=htmlpath;
+                      else if (type==='resource') {
+                        var rpath=data.resource;
+                        if (typeof(rpath)==='undefined')
+                          rpath=data.pattern;
+
+                        var resolve=Sorcery.resolve_resource(rpath);
+                        if (resolve!==null) {
+                          target=resolve;
+                        }
+                        else
+                          target=null;
+                      }
+                      else
+                        target=null;
+
+                      if (target!==null)
+                        routemasks[pattern]=target;
+                    }
+
+                  };
+
+                  Module.register(pseudo_router);
+
+                  var rewrites={};
+                  for (var i in routemasks)
+                    rewrites[i]='RewriteRule ^'+i+'$ /'+routemasks[i]+' [QSA,L]\n';
+
+                  if (typeof(htaccess_cache[path])==='undefined')
+                    htaccess_cache[path]={};
+
+                  var htcache=htaccess_cache[path];
+
+                  for (var i in htcache) {
+                    var v=htcache[i];
+                    var vv=rewrites[i];
+                    var action=null;
+                    if (typeof(vv)==='undefined') {
+                      action='-';
+                      delete htcache[i];
+                    }
+                    if (action!==null) {
+                      me.debug('['+action+'URL] /'+i);
+                      updhtaccess();
+                    }
+                  }
+
+                  for (var i in rewrites) {
+                    var v=rewrites[i];
+                    var vv=htcache[i];
+                    var action=null;
+                    if (typeof(vv)==='undefined') {
+                      action='+';
+                      htcache[i]=v;
+                    }
+                    else if (vv!==v) {
+                      action='~';
+                      htcache[i]=v;
+                    }
+                    if (action!==null) {
+                      me.debug('['+action+'URL] /'+i);
+                      updhtaccess();
+                    }
+                  }
+
+                }
+              });
+            } catch (e) {
+              return false;
+            }
+          }
+          
         },
         
         compile : function(event,path,options) {
@@ -543,7 +676,6 @@ Sorcery.define([
             else m2='';
 
             if (m1>m2) {
-            
             
               Sorcery.require([
                 'service/compiler/'+options.compiler
