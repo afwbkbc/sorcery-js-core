@@ -276,14 +276,14 @@ Sorcery.define([
   
     maintain : function() {
       
-      var bases=['.','./compiled'];
+      var bases=['','compiled/'];
       
       var paths=[];
       
       for (var i in bases) {
         var base=bases[i];
-        paths.push(base+'/app/');
-        paths.push(base+'/packages/');
+        paths.push(base+'app');
+        paths.push(base+'packages');
 
         /*for (var ii in Sorcery.packages) {
           paths.push(base+'/packages/'+Sorcery.packages[ii]);
@@ -318,12 +318,20 @@ Sorcery.define([
       };
       
       var actions={
-        '.js':[{
+        '':[
+          {
+            action:'package'
+          }
+        ],
+        '.js':[
+          {
             action:'path',
             key:'js'
-        },'htaccess']
+          },
+          'htaccess'
+        ]
       };
-      //console.log('C',Sorcery.path_cache);
+      
       for (var i in Sorcery.engines) {
         var engine=Sorcery.engines[i];
         for (var ii in engine) {
@@ -355,8 +363,51 @@ Sorcery.define([
       
       var me=this;
       
-      //console.log('ASD',Sorcery.resource_cache);
       var actionfuncs={
+        
+        package : function(event,path) {
+          
+          if (['addDir','unlinkDir'].indexOf(event)<0)
+            return;
+          
+          var action=null;
+          
+          var pkg;
+          
+          var packagesstr='packages/';
+          var packagesstrl=packagesstr.length;
+          if (path.substring(0,packagesstrl)===packagesstr) {
+            path=path.substring(packagesstrl);
+            var pos=path.indexOf('/');
+            if (pos>=0) {
+              pkg=path.substring(0,pos);
+              path=path.substring(pos+1);
+              if (path.indexOf('/')<0) {
+                pkg+='/'+path;
+                var iof=Sorcery.packages.indexOf(pkg);
+                if (event==='addDir') {
+                  if (iof<0) {
+                    Sorcery.packages.push(pkg);
+                    action='+PKG';
+                  }
+                }
+                else if (event==='unlinkDir') {
+                  if (iof>=0) {
+                    Sorcery.packages.splice(iof,1);
+                    action='-PKG';
+                  }
+                }
+              }
+            }
+            
+          }
+          
+          if (action!==null) {
+            me.debug('['+action+'] '+pkg);
+            addtodo('writecache');
+          }
+          
+        },
         
         path : function(event,path,options) {
           
@@ -388,7 +439,6 @@ Sorcery.define([
             if (path.substring(0,compiledstrl)===compiledstr) {
               path=path.substring(compiledstrl);
               pth+=compiledstr;
-              //console.log('X',path,pth);
             }
             
             cache[path]=pth;
@@ -449,7 +499,7 @@ Sorcery.define([
             else if (event==='unlink') {
               if (iof>=0) {
                 action='-';
-                source[i]=chk.splice(iof,1);
+                source[i].splice(iof,1);
               }
             }
           }
@@ -498,7 +548,15 @@ Sorcery.define([
           }
         }
 
+        var isdir=event==='addDir'||event==='unlinkDir';
+
         for (var extension in actions) {
+          
+          if ((!extension)&&(!isdir))
+            continue;
+          if (extension&&isdir)
+            continue;
+          
           if (path.substring(path.length-extension.length)===extension) {
             
             var a=actions[extension];
@@ -519,17 +577,11 @@ Sorcery.define([
                 }
               }
               options['extension']=extension;
-              //console.log('ANAME',actionname,action);
               if (actionfuncs[actionname](event,path,options)===false)
                 break;
               
-              //console.log('ACTION',extension,event,path,aname,action);
-              
             }
             
-            //console.log('EVENT',extension,event,path,a);
-            
-
           }
         }
 
