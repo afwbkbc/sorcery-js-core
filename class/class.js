@@ -33,18 +33,41 @@ Sorcery.define([],function(){
         }
         events=events.substring(pos+1);
         pos=events.indexOf(' ');
-      }
+      };
+      return this;
     },
-    trigger : function(event,args) {
+    trigger : Sorcery.method(function(event,args) {
+      var sid=Sorcery.begin();
+      
       if ((typeof(this.listeners)!=='undefined')&&(typeof(this.listeners[event])!=='undefined')) {
+        var self=this;
         if (typeof(args)==='undefined')
           args={};
-        for (var i in this.listeners[event]) {
-          var l=this.listeners[event][i];
-          l.call(this,args);
-        }
+        var i;
+        var retval=true;
+        Sorcery.loop.for(
+          function() { i=0; },
+          function() { return i<self.listeners[event].length; },
+          function() { i++; },
+          function(cont,brk) {
+            var v=self.listeners[event][i];
+            Sorcery.call(v,args,function(ret) {
+              if (ret===false) {
+                retval=false;
+                return brk();
+              }
+              else
+                return cont();
+            });
+          },
+          function() {
+            return Sorcery.end(sid,retval);
+          }
+        );
       }
-    },
+      else
+        return Sorcery.end(sid);
+    }),
     depend_on : function(obj) {
       if (typeof(this.depends_on)==='undefined')
         this.depends_on=[];
