@@ -1,15 +1,19 @@
 Sorcery.define([],function(){
   var cls={
-    //listeners:[],
     extend : function(additional) {
       if (typeof(additional)==='undefined')
         additional={};
       var ret=additional;
       for (var i in this) {
-        if (typeof(ret[i])==='undefined')
+        if (typeof(ret[i])==='undefined') {
           ret[i]=this[i];
-        if (typeof(ret[i])==='function')
-          ret[i].owner=ret;
+          if (typeof(ret[i])==='function') {
+            ret[i]._s_owner=ret;
+            ret[i]._s_name=i;
+          }
+        }
+      }
+      for (var i in ret) {
       }
       ret.this_class=ret;
       ret.parent_class=this;

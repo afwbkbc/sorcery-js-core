@@ -16,7 +16,7 @@ Sorcery.define([
 
     construct : Sorcery.method(function(viewel) {
       var sid=Sorcery.begin();
-      
+
       if (viewel===null)
         throw new Error('view container is null');
 
@@ -30,7 +30,6 @@ Sorcery.define([
         
         todo--;
         if (!todo) {
-          //console.log('FF',viewel);
         
           if (viewel.getAttribute('data-view')!==null)
             throw new Error('duplicate view on single element');
@@ -188,7 +187,7 @@ Sorcery.define([
       var sid=Sorcery.begin();
       
       var self=this;
-      
+      //console.log('SELF',self);
       self.el.innerHTML='';
       // TODO: "loading" stuff?
       

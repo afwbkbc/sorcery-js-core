@@ -587,10 +587,9 @@ var Twig = (function (Twig) {
             return output.join("");
         } catch (ex) {
             Twig.log.error("Error parsing twig template " + this.id + ": ");
+            Twig.log.error(ex.toString());
             if (ex.stack) {
                 Twig.log.error(ex.stack);
-            } else {
-                Twig.log.error(ex.toString());
             }
 
             if (this.options.rethrow) throw ex;
