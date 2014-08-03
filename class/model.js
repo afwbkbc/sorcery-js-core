@@ -8,11 +8,16 @@ Sorcery.define([
     
     construct : function(){
       var fields=this.fields();
-      console.log('F',fields);
+      if (typeof(fields)!=='object')
+        throw new Error('"fields" method in model "'+this.module_name+'" must return an object, '+typeof(fields)+' returned');
+      this.data=[];
+      for (var i in fields) {
+        
+      }
     },
     
     fields : function() {
-      console.log('adasdsad',this);
+      throw new Error('Please specify "fields" method in model "'+this.module_name+'"!');
     }
     
   });
