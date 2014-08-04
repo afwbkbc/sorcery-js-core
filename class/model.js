@@ -64,10 +64,8 @@ Sorcery.define([
               key:key,
               value:value
             },function(ret){
-              if (ret!==false) {
-                console.log('UNSET',key);
+              if (ret!==false)
                 delete self.data[key];
-              }
               return cont();
             });
           });
@@ -111,7 +109,6 @@ Sorcery.define([
               if (ret!==false) {
                 var func1=function(){
                   var func2=function(){
-                    console.log('SET',key,value);
                     self.data[key]=value;
                     return cont();
                   };

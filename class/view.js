@@ -133,54 +133,107 @@ Sorcery.define([
       
     }),
     
-    unset : Sorcery.method(function(keys) {
+    unset : Sorcery.method(function(k) {
       var sid=Sorcery.begin();
+      if (typeof(k)!=='object') {
+        if (typeof(k)==='string')
+          k=[k];
+        else
+          throw new Error('Invalid parameter passed to unset() in model "'+this.module_name+'"!');
+      }
+      else if (k.constructor !== Array)
+        throw new Error('Invalid parameter passed to unset() in model "'+this.module_name+'"!');
       
-      if (typeof(keys)==='string')
-        keys=[keys];
+      var self=this;
       
-      for (var i in keys) {
-        var key=keys[i];
-        if (typeof(this.data[key])!=='undefined') {
-          
-          //console.log('UNSET',key);
-          
-          // ...
-          
-          delete this.data[key];
+      Sorcery.loop.in(
+        k,
+        function(index,key,cont) {
+          Sorcery.call(self.get,key,function(value){
+            if (typeof(value)==='undefined')
+              return cont();
+            Sorcery.call(self.trigger,'unset',{
+              key:key,
+              value:value
+            },function(ret){
+              if (ret!==false)
+                delete self.data[key];
+              return cont();
+            });
+          });
+        },
+        function() {
+          return Sorcery.end(sid);
         }
-      }
+      );
       
-      return Sorcery.end(sid);
     }),
     
-    set : Sorcery.method(function(values,v2) {
+    get : Sorcery.method(function(k){
       var sid=Sorcery.begin();
-      
-      if ((typeof(values)==='string')&&typeof(v2)!=='undefined') {
-        v={};
-        v[values]=v2;
-        values=v;
-      }
-      
-      for (var i in values) {
-        
-        //console.log('SET',i,values[i]);
-        
-        // ...
-        
-        this.data[i]=values[i];
-      }
-      
-      return Sorcery.end(sid);
+      return Sorcery.end(sid,this.data[k]);
     }),
     
-    get : Sorcery.method(function(key) {
+    set : Sorcery.method(function(k,v) {
       var sid=Sorcery.begin();
       
-      if (isset)
+      var self=this;
       
-      return Sorcery.end(sid);
+      if (typeof(k)!=='object') {
+        if ((typeof(k)==='string')&&(typeof(v)!=='undefined')) {
+          var ko=k;
+          k={};
+          k[ko]=v;
+        }
+        else
+          throw new Error('Invalid parameter(s) passed to set() in model "'+this.module_name+'"!');
+      }
+
+      Sorcery.loop.in(
+        k,
+        function(key,value,cont) {
+          Sorcery.call(self.get,key,function(oldvalue){
+            Sorcery.call(self.trigger,'set',{
+              key:key,
+              value:value,
+              oldvalue:oldvalue
+            },function(ret){
+              if (ret!==false) {
+                var func1=function(){
+                  var func2=function(){
+                    self.data[key]=value;
+                    return cont();
+                  };
+
+                  if (typeof(oldvalue)!=='undefined')
+                    Sorcery.call(self.unset,key,func2);
+                  else
+                    return func2();
+                };
+                if (value&&typeof(value.trigger)==='function') {
+                  Sorcery.call(value.trigger,'setme',{
+                    key:key,
+                    to:self,
+                    oldvalue:oldvalue
+                  },function(ret){
+                    if (ret!==false)
+                      return func1();
+                    else return cont();
+                  });
+                }
+                else
+                  return func1();
+              }
+              else
+                return cont();
+            });
+          });
+        },
+        function() {
+          return Sorcery.end(sid);
+        }
+      );
+    
     }),
     
     render : Sorcery.method(function() {
@@ -196,16 +249,22 @@ Sorcery.define([
       ],function(TemplateEngine){
         
         var finalfunc=function() {
-          
-          self.trigger('prerender');
-          
-          TemplateEngine.render(self.template_data,self.data,function(processed_data){
+          //if (self.template==='template/menu')
+            //console.log('FINALFUNC');
+          Sorcery.call(self.trigger,'prerender',{},function(){
+            
+            //if (self.template==='template/menu')
+              //console.log('PRERENDER DONE',self.data);
+            
+            TemplateEngine.render(self.template_data,self.data,function(processed_data){
 
-            self.el.innerHTML=processed_data;
+              self.el.innerHTML=processed_data;
 
-            self.trigger('postrender');
+              self.trigger('postrender');
 
-            return Sorcery.end(sid);
+              return Sorcery.end(sid);
+            });
+            
           });
         
         };
