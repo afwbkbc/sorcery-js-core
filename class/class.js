@@ -1,46 +1,33 @@
 Sorcery.define([],function(){
   var cls={
     extend : function(additional) {
-      var classextend=true;
-      if (typeof(additional)==='undefined') {
+      if (typeof(additional)==='undefined')
         additional={};
-        classextend=false;
-      }
       var ret=additional;
       for (var i in this) {
         if (typeof(ret[i])==='undefined') {
-          if (classextend&&(this[i]!==null)&&(typeof(this[i].clone)==='function')) {
-            //console.log('CLONE',ret,i,this[i]);
-            ret[i]=this[i].clone();
+          ret[i]=this[i];
+        }
+      }
+      for (var i in ret) {
+        if (typeof(ret[i])==='function') {
+          if (typeof(ret[i]._s_class_owner)==='undefined')
+            ret[i]._s_class_owner=ret;
+          if (typeof(ret[i]._s_method_name)==='undefined')
+            ret[i]._s_method_name=i;
+          if (typeof(ret[i]._s_id)==='undefined') {
+            ret[i]._s_id=Sorcery.unique_id('func');
+            //console.log('newid',ret[i]._s_id);
           }
           else {
-            //console.log('REF',ret,i,this[i]);
-            ret[i]=this[i];
-          }
-          if (typeof(ret[i])==='function') {
-            
+            //console.log('id',ret[i]._s_id);
           }
         }
       }
-      //if (classextend) {
-        for (var i in ret) {
-          if (typeof(ret[i])==='function') {
-            ret[i]._s_owner=ret;
-            ret[i]._s_name=i;
-            if (typeof(ret[i]._s_id)==='undefined') {
-              ret[i]._s_id=Sorcery.unique_id('func');
-              //console.log('newid',ret[i]._s_id);
-            }
-            else {
-              //console.log('id',ret[i]._s_id);
-            }
-          }
-        }
-      //}
-      if (classextend) {
-        ret.this_class=ret;
-        ret.parent_class=this;
-      }
+      
+      ret.this_class=ret;
+      ret.parent_class=this;
+      
       return ret;
     },
     on : function(events,callback) {

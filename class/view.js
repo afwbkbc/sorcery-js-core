@@ -41,7 +41,7 @@ Sorcery.define([
 
               self.el=viewel;
               //self.$el=jQuery(self.el);
-              
+              //console.log('CONSTRUCTED');
               return Sorcery.end(sid);
 
             });
@@ -240,8 +240,8 @@ Sorcery.define([
       var sid=Sorcery.begin();
       
       var self=this;
-      //console.log('SELF',self);
-      self.el.innerHTML='';
+      
+      //self.el.innerHTML='';
       // TODO: "loading" stuff?
       
       Sorcery.require([
