@@ -3378,9 +3378,14 @@ var Twig = (function (Twig) {
 
                 var capitalize = function(value) {return value.substr(0, 1).toUpperCase() + value.substr(1);};
                 
+                //console.log('try',object,token,context, key);
+                
+                //value = Sorcery.get
                 // Get the variable from the context
                 if (typeof object === 'object' && key in object) {
-                    value = object[key];
+                  value = object[key];
+                } else if (typeof object === 'object' && typeof object['data'] === 'object') {
+                  value = object.data[key];
                 } else if (typeof object === 'object' && typeof object['get'] === 'function') {
                   value = object.get(key);
                 } else if (object["get"+capitalize(key)] !== undefined) {

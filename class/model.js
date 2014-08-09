@@ -22,6 +22,7 @@ Sorcery.define([
           Sorcery.call(self.set,key,v,cont);
         },
         function() {
+          self.fields_cache=fields;
           return Sorcery.end(sid);
         }
       );

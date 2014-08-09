@@ -176,7 +176,6 @@ Sorcery.define([
     
     set : Sorcery.method(function(k,v) {
       var sid=Sorcery.begin();
-      
       var self=this;
       
       if (typeof(k)!=='object') {
