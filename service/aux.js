@@ -345,7 +345,7 @@ Sorcery.define([
             action:'path',
             key:'js'
           },
-          'htaccess'
+       // 'htaccess'
         ]
       };
       
